@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Espérance Saguenay</h1>
+<p>Un espace pour partager les besoins des projets communautaires du Saguenay.</p>
+
+<div class="project-list">
+  {% for project in projects %}
+    <a class="project-card" href="{{ url_for('project_detail', project_id=project.id) }}">
+      
+      <div class="project-left">
+        <div class="project-number">{{ loop.index }}</div>
+      </div>
+
+      <div class="project-right">
+        <div class="project-header">
+          <strong>{{ project.createur.prenom }} {{ project.createur.nom }}</strong>
+          – {{ project.ville or "Ville inconnue" }}<br>
+          <small>Publié le {{ project.created_at.strftime("%d/%m/%Y à %H:%M") }}</small>
+        </div>
+        <div class="project-desc">
+          {{ project.description[:200] }}{% if project.description|length > 200 %}...{% endif %}
+        </div>
+      </div>
+
+    </a>
+  {% else %}
+    <p>Aucun projet pour le moment. Soyez le premier à en créer un !</p>
+  {% endfor %}
+</div>
+
+{% endblock %}

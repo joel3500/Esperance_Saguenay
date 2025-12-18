@@ -1,0 +1,4 @@
+Flask
+peewee
+psycopg2-binary
+gunicorn

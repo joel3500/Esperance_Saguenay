@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Espérance Saguenay</h1>
+
+<p>
+    Tu as un projet très interessant, pour lequel tu as juste besoin de rassembler toutes les ressources qui te manquent pour le réaliser.<br><br>
+
+    Avec Espérance Saguenay, SKY IS THE LIMIT <br><br>
+
+    Utilises tous les médias que tu peux pour décrire, expliquer ton projet (photos, vidéos, PDF, excel). Plus ça va être explicite, mieux on pourra t'aider. <br><br> 
+
+    En effet, des personnes ayant les ressources, les compétences, l'expérience, ... (propriétaires de commerces, programmeurs, banquiers, avocats, médecins, organisateurs d'évenements, bénévoles, commercants, ...) visiteront ta page Galerie du Projet et te laisseront des commentaires. <br><br>
+    
+    <br>
+    <em>Cette vidéo sera remplacée par votre vidéo.<em> <br>
+    <video controls title="J'espère que vous aimez ce contenu" allowfullscreen>
+          <source src="static/video/vision_et_mission.mp4" type="video/mp4" >
+          Your browser does not support the video tag.
+    </video><br><br>
+
+</p>
+
+<div class="project-list">
+  {% for project in projects %}
+    <a class="project-card" href="{{ url_for('project_detail', project_id=project.id) }}">
+      <div class="project-left">
+        <div class="project-number">{{ loop.index }}</div>
+      </div>
+      <div class="project-right">
+        <div class="project-header">
+          <strong>{{ project.createur.prenom }} {{ project.createur.nom }}</strong>
+          – {{ project.ville or "Ville inconnue" }}<br>
+          <small>Publié le {{ project.created_at.strftime("%d/%m/%Y à %H:%M") }}</small>
+        </div>
+        <div class="project-desc">
+          {{ project.description[:200] }}{% if project.description|length > 200 %}...{% endif %}
+        </div>
+      </div>
+    </a>
+  {% else %}
+    <p>Aucun projet pour le moment. Soyez le premier à en créer un !</p>
+  {% endfor %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block content %}
+
+<article class="project-detail">
+  <header>
+    <h2>Projet #{{ project.id }}</h2>
+    <p>
+      <strong>{{ project.createur.prenom }} {{ project.createur.nom }}</strong>
+      – {{ project.ville or "Ville inconnue" }}<br>
+      <small>Soumis le {{ project.created_at.strftime("%d/%m/%Y à %H:%M") }}</small>
+    </p>
+  </header>
+
+  <section>
+    <h3>Description du projet</h3>
+    <p>{{ project.description | nl2br }}</p>
+  </section>
+
+  <section>
+    <h3>Besoins</h3>
+    {% if project.needs %}
+      <ul>
+        {% for besoin in project.needs %}
+          <li>{{ besoin.texte }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>Aucun besoin détaillé.</p>
+    {% endif %}
+  </section>
+
+  <section>
+    <h3>Galerie du Projet</h3>
+    {% if project.medias %}
+      <div class="media-grid">
+        {% for m in project.medias %}
+          {% if m.media_type == "image" %}
+            <img src="{{ url_for('static', filename='uploads/' ~ m.filename) }}"
+                 alt="media {{ loop.index }}">
+          {% else %}
+            <video controls>
+              <source src="{{ url_for('static', filename='uploads/' ~ m.filename) }}">
+              Votre navigateur ne supporte pas la vidéo.
+            </video>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>Aucun média pour le moment.</p>
+    {% endif %}
+  </section>
+
+  <section>
+    <h3>Liens utiles</h3>
+    {% if project.links %}
+      <ul>
+        {% for l in project.links %}
+          <li><a href="{{ l.url }}" target="_blank">{{ l.url }}</a></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>Aucun lien ajouté.</p>
+    {% endif %}
+  </section>
+
+</article>
+
+<hr> <!--======================= la grande barre avant les commentaires ==============================-->
+
+<section class="comments">
+  <h3>Commentaires</h3>
+
+  {% if current_user %}
+    <form method="post" action="{{ url_for('add_comment', project_id=project.id) }}" class="comment-form">
+      <label for="contenu">Poster une nouvelle intervention</label><br>
+      <textarea name="contenu" id="contenu" rows="3" required></textarea><br>
+      <button type="submit">Envoyer</button>
+    </form>
+  {% else %}
+    <p>Pour commenter, veuillez <a href="{{ url_for('login') }}">vous connecter</a>.</p>
+  {% endif %}
+
+  <div class="comment-list">
+    {% for c in comments %}
+      <div class="comment">
+        <p class="comment-meta">
+          <strong>{{ c.auteur.prenom }} {{ c.auteur.nom }}</strong>
+          – {{ c.created_at.strftime("%d/%m/%Y à %H:%M") }}
+          {% if c.updated_at > c.created_at %}
+            <em>(modifié)</em>
+          {% endif %}
+        </p>
+        <p>{{ c.contenu | nl2br }}</p>
+
+        {% if current_user and current_user.id == c.auteur.id %}
+          <form method="get" action="{{ url_for('edit_comment', comment_id=c.id) }}" class="inline-form">
+            <button type="submit">Modifier</button>
+          </form>
+          <form method="post" action="{{ url_for('delete_comment', comment_id=c.id) }}" class="inline-form">
+            <button type="submit" onclick="return confirm('Supprimer ce commentaire ?');">
+              Supprimer
+            </button>
+          </form>
+        {% endif %}
+
+        {% if current_user %}
+          <form method="post"
+                action="{{ url_for('add_comment', project_id=project.id) }}"
+                class="reply-form">
+            <input type="hidden" name="parent_id" value="{{ c.id }}">
+            <textarea name="contenu" rows="2" placeholder="Répondre..."></textarea>
+            <button type="submit">Répondre</button>
+          </form>
+        {% endif %}
+
+        {% for r in c.replies %}
+          <div class="comment reply">
+            <p class="comment-meta">
+              <strong>{{ r.auteur.prenom }} {{ r.auteur.nom }}</strong>
+              – {{ r.created_at.strftime("%d/%m/%Y à %H:%M") }}
+            </p>
+            <p>{{ r.contenu | nl2br }}</p>
+
+            {% if current_user and current_user.id == r.auteur.id %}
+              
+                <form method="get" action="{{ url_for('edit_comment', comment_id=r.id) }}" class="inline-form">
+                  <button type="submit">Modifier</button>
+                </form>
+
+                <form method="post" action="{{ url_for('delete_comment', comment_id=r.id) }}" class="inline-form">
+                  <button type="submit" onclick="return confirm('Supprimer ?');">Supprimer</button>
+                </form>
+                th trh erth erth erth rt
+                <br><br>
+            {% endif %}
+          </div>
+        {% endfor %}
+
+      </div>
+    {% else %}
+      <p>Pas encore de commentaires.</p>
+    {% endfor %}
+  </div>
+</section>
+
+{% endblock %}

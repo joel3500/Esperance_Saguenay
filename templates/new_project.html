@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+
+    <h2>Nouveau projet</h2>
+
+    <form method="post" enctype="multipart/form-data" class="form-vertical">
+      <label for="ville">Ville</label>
+      <input type="text" id="ville" name="ville" placeholder="Saguenay, Chicoutimi, ..." />
+
+      <label for="description">Description du projet</label>
+      <textarea id="description" name="description" rows="5" required></textarea>
+
+      <h3>Liste des besoins</h3>
+      <!-- Le plus simple : 3 champs, tu pourras en ajouter plus tard -->
+      <input type="text" name="besoins" placeholder="Besoin 1">
+      <input type="text" name="besoins" placeholder="Besoin 2">
+      <input type="text" name="besoins" placeholder="Besoin 3">
+
+      <h3>Liens URL (optionnel)</h3>
+      <input type="url" name="urls" placeholder="https://exemple.com">
+      <input type="url" name="urls" placeholder="https://autre-lien.com">
+
+      <h3>Upload des médias (images ou vidéos)</h3>
+      <input type="file" name="medias" multiple>
+
+      <button type="submit">Enregistrer le projet</button>
+    </form>
+
+{% endblock %}

@@ -1,0 +1,21 @@
+esperance_saguenay/
+│
+├─ app.py
+├─ models.py
+├─ requirements.txt
+│
+├─ templates/
+│   ├─ base.html
+│   ├─ index.html                # liste des projets
+│   ├─ project_detail.html       # page d'un projet + commentaires
+│   ├─ new_project.html          # création d’un projet
+│   ├─ signup.html
+│   └─ login.html
+│
+└─ static/
+    ├─ css/
+    │   └─ style.css
+    ├─ img/
+    │   └─ image_principale_centraide.jpg   # ta bannière principale
+    └─ uploads/
+        └─ (images et vidéos des projets)

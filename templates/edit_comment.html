@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Modifier votre commentaire</h2>
+
+<form method="post" class="form-vertical">
+  <textarea name="contenu" rows="4" required>{{ comment.contenu }}</textarea>
+  <button type="submit">Enregistrer</button>
+</form>
+
+{% endblock %}

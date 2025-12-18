@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Espérance Saguenay</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<header>
+  <img
+    src="{{ url_for('static', filename='img/image_principale_centraide_1.jpg') }}"
+    alt="Espérance Saguenay"
+    class="banner"
+  >
+
+  <nav class="top-nav">
+    <a href="{{ url_for('index') }}">Accueil</a>
+
+    {% if current_user %}
+      <span>Bonjour {{ current_user.prenom }} {{ current_user.nom }}</span>
+      <a href="{{ url_for('new_project') }}">Nouveau projet</a>
+      <a href="{{ url_for('logout') }}">Se déconnecter</a>
+    {% else %}
+      <a href="{{ url_for('signup') }}">Créer un compte</a>
+      <a href="{{ url_for('login') }}">Se connecter</a>
+      <a href="{{ url_for('vision_et_mission') }}">Vision et Mission</a>
+    {% endif %}
+  </nav>
+</header>
+
+<main>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container">
+        {% for category, msg in messages %}
+          <div class="flash flash-{{ category }}">{{ msg }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<footer>
+  Tous droits réservés. Directeur et Propriétaire : Professeur Fehmi Jaafar,
+  réalisé par Joel Sandé, du Saguenay–Lac-Saint-Jean.
+</footer>
+
+</body>
+</html>
