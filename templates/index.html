@@ -16,8 +16,9 @@
         <div class="project-header">
           <strong>{{ project.createur.prenom }} {{ project.createur.nom }}</strong>
           – {{ project.ville or "Ville inconnue" }}<br>
-          <small>Publié le {{ project.created_at.strftime("%d/%m/%Y à %H:%M") }}</small>
+          <small><font color="blue">Publié le {{ project.created_at.strftime("%d/%m/%Y à %H:%M") }}</font></small>
         </div>
+
         <div class="project-desc">
           {{ project.description[:200] }}{% if project.description|length > 200 %}...{% endif %}
         </div>

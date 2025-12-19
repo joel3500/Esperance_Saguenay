@@ -3,12 +3,12 @@
 
 <article class="project-detail">
   <header>
-    <h2>Projet #{{ project.id }}</h2>
-    <p>
-      <strong>{{ project.createur.prenom }} {{ project.createur.nom }}</strong>
-      – {{ project.ville or "Ville inconnue" }}<br>
-      <small>Soumis le {{ project.created_at.strftime("%d/%m/%Y à %H:%M") }}</small>
-    </p>
+      <h2>Projet #{{ project.id }}</h2>
+      <p>
+          <strong>{{ project.createur.prenom }} {{ project.createur.nom }}</strong>
+          – {{ project.ville or "Ville inconnue" }}<br>
+          <small> <font color="blue">Soumis le {{ project.created_at.strftime("%d/%m/%Y à %H:%M") }} </font> </small>
+      </p>
   </header>
 
   <section>
@@ -63,7 +63,7 @@
     {% endif %}
   </section>
 
-</article>
+</article><br><br>
 
 <hr> <!--======================= la grande barre avant les commentaires ==============================-->
 
@@ -84,11 +84,13 @@
     {% for c in comments %}
       <div class="comment">
         <p class="comment-meta">
-          <strong>{{ c.auteur.prenom }} {{ c.auteur.nom }}</strong>
-          – {{ c.created_at.strftime("%d/%m/%Y à %H:%M") }}
-          {% if c.updated_at > c.created_at %}
-            <em>(modifié)</em>
-          {% endif %}
+            <strong>{{ c.auteur.prenom }} {{ c.auteur.nom }}</strong>
+            <font color="blue"> 
+                – {{ c.created_at.strftime("%d/%m/%Y à %H:%M") }} 
+                {% if c.updated_at > c.created_at %}
+                <em>(modifié)</em>
+                {% endif %}
+            </font>
         </p>
         <p>{{ c.contenu | nl2br }}</p>
 
@@ -117,7 +119,7 @@
           <div class="comment reply">
             <p class="comment-meta">
               <strong>{{ r.auteur.prenom }} {{ r.auteur.nom }}</strong>
-              – {{ r.created_at.strftime("%d/%m/%Y à %H:%M") }}
+              <font color="blue"> – {{ r.created_at.strftime("%d/%m/%Y à %H:%M") }} </font>
             </p>
             <p>{{ r.contenu | nl2br }}</p>
 
