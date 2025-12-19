@@ -7,6 +7,7 @@ from peewee import (
     ForeignKeyField, DatabaseProxy, SqliteDatabase
 )
 from playhouse.postgres_ext import PostgresqlExtDatabase
+from playhouse.db_url import connect  # important
 
 # Proxy : permet de brancher soit Postgres, soit SQLite
 db_proxy = DatabaseProxy()
@@ -59,39 +60,37 @@ class Comment(BaseModel):
 # ==================== Pour initialiser la Base de données
 
 def init_database():
+    
+    #  Sur Render :
+    #  - si DATABASE_URL est défini -> on se connecte à Postgres (Internal URL)
+    
+    #  En local :
+    #  - si pas de DATABASE_URL -> on utilise SQLite (esperance.db)
+    
 
-    # Essaie d'abord de se connecter à PostgreSQL.
-    # Si échec, bascule automatiquement vers SQLite.
+    db_url = os.getenv("DATABASE_URL")
 
-    # ============= Variables d'environnement pour Postgres (pour Render)
-
-    pg_db_name = os.getenv("POSTGRES_DB", "esperance_db")
-    pg_user = os.getenv("POSTGRES_USER", "postgres")
-    pg_password = os.getenv("POSTGRES_PASSWORD", "")
-    pg_host = os.getenv("POSTGRES_HOST", "localhost")
-    pg_port = int(os.getenv("POSTGRES_PORT", "5432"))
-
-    try:
-        postgres_db = PostgresqlExtDatabase(
-            pg_db_name,
-            user=pg_user,
-            password=pg_password,
-            host=pg_host,
-            port=pg_port,
-        )
-        postgres_db.connect()
-        postgres_db.close()
-        print("Base PostgreSQL OK, utilisation de PostgreSQL.")
-        db_proxy.initialize(postgres_db)
-    except Exception as exc:
-        print("Impossible de se connecter à PostgreSQL :", exc)
-        print("Bascule vers SQLite (esperance.db).")
+    if db_url:
+        try:
+            print("DATABASE_URL détecté, tentative de connexion PostgreSQL...")
+            postgres_db = connect(db_url)  # utilise directement l'URL Render
+            postgres_db.connect()
+            postgres_db.close()
+            print("Connexion PostgreSQL (DATABASE_URL) OK.")
+            db_proxy.initialize(postgres_db)
+        except Exception as exc:
+            print("Erreur PostgreSQL via DATABASE_URL :", exc)
+            print("Bascule vers SQLite (esperance.db).")
+            sqlite_db = SqliteDatabase("esperance.db")
+            db_proxy.initialize(sqlite_db)
+    else:
+        print("Aucune DATABASE_URL, utilisation de SQLite (esperance.db).")
         sqlite_db = SqliteDatabase("esperance.db")
         db_proxy.initialize(sqlite_db)
 
-    # ================== Création des tables si elles n'existent pas
-
+    # Création des tables si elles n'existent pas
     with db_proxy:
-         db_proxy.create_tables(
-             [User, Project, Need, Media, ProjectLink, Comment]
+        db_proxy.create_tables(
+            [User, Project, Need, Media, ProjectLink, Comment]
         )
+
