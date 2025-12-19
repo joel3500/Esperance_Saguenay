@@ -60,37 +60,28 @@ class Comment(BaseModel):
 # ==================== Pour initialiser la Base de données
 
 def init_database():
-    
-    #  Sur Render :
-    #  - si DATABASE_URL est défini -> on se connecte à Postgres (Internal URL)
-    
-    #  En local :
-    #  - si pas de DATABASE_URL -> on utilise SQLite (esperance.db)
-    
-
+    """
+    Sur Render :
+      - si DATABASE_URL est défini -> on se connecte à Postgres (Internal URL)
+    En local :
+      - si pas de DATABASE_URL -> on utilise SQLite (esperance.db)
+    """
     db_url = os.getenv("DATABASE_URL")
 
     if db_url:
-        try:
-            print("DATABASE_URL détecté, tentative de connexion PostgreSQL...")
-            postgres_db = connect(db_url)  # utilise directement l'URL Render
-            postgres_db.connect()
-            postgres_db.close()
-            print("Connexion PostgreSQL (DATABASE_URL) OK.")
-            db_proxy.initialize(postgres_db)
-        except Exception as exc:
-            print("Erreur PostgreSQL via DATABASE_URL :", exc)
-            print("Bascule vers SQLite (esperance.db).")
-            sqlite_db = SqliteDatabase("esperance.db")
-            db_proxy.initialize(sqlite_db)
+        print("DATABASE_URL détecté, utilisation de PostgreSQL...")
+        db = connect(db_url)  # playhouse.db_url.connect
     else:
         print("Aucune DATABASE_URL, utilisation de SQLite (esperance.db).")
-        sqlite_db = SqliteDatabase("esperance.db")
-        db_proxy.initialize(sqlite_db)
+        db = SqliteDatabase("esperance.db")
 
-    # Création des tables si elles n'existent pas
+    # On branche le proxy sur cette DB
+    db_proxy.initialize(db)
+
+    # On crée les tables une fois, Peewee gère la connexion dans ce bloc
     with db_proxy:
         db_proxy.create_tables(
             [User, Project, Need, Media, ProjectLink, Comment]
         )
+
 

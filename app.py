@@ -28,6 +28,21 @@ app.config["UPLOAD_FOLDER"] = str(UPLOAD_FOLDER)
 init_database()
 
 # ================================ Helpers ===========================
+# ... après init_database()
+
+@app.before_request
+def _db_connect():
+    """Ouvre une connexion DB au début de chaque requête."""
+    if db_proxy.is_closed():
+        db_proxy.connect(reuse_if_open=True)
+
+
+@app.teardown_request
+def _db_close(exc):
+    """Ferme la connexion DB à la fin de chaque requête."""
+    if not db_proxy.is_closed():
+        db_proxy.close()
+
 
 def login_required(f):
     # Petit décorateur pour protéger certaines routes
