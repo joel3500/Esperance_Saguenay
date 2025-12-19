@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h1>Espérance Saguenay</h1>
+<h3>Espérance Saguenay</h3>
 
 <section>
     Tu as un projet très interessant, pour lequel tu as juste besoin de rassembler toutes les ressources qui te manquent pour le réaliser.<br><br>
@@ -24,26 +24,26 @@
 
   </section>
 
-<div class="project-list">
-  {% for project in projects %}
-    <a class="project-card" href="{{ url_for('project_detail', project_id=project.id) }}">
-      <div class="project-left">
-        <div class="project-number">{{ loop.index }}</div>
-      </div>
-      <div class="project-right">
-        <div class="project-header">
-          <strong>{{ project.createur.prenom }} {{ project.createur.nom }}</strong>
-          – {{ project.ville or "Ville inconnue" }}<br>
-          <small> <font color="blue"> Publié le {{ project.created_at.strftime("%d/%m/%Y à %H:%M") }} </font> </small>
+  <div class="project-list">
+    {% for project in projects %}
+      <a class="project-card" href="{{ url_for('project_detail', project_id=project.id) }}">
+        <div class="project-left">
+          <div class="project-number">{{ loop.index }}</div>
         </div>
-        <div class="project-desc">
-          {{ project.description[:200] }}{% if project.description|length > 200 %}...{% endif %}
+        <div class="project-right">
+          <div class="project-header">
+            <strong>{{ project.createur.prenom }} {{ project.createur.nom }}</strong>
+            – {{ project.ville or "Ville inconnue" }}<br>
+            <small> <font color="blue"> Publié le {{ project.created_at.strftime("%d/%m/%Y à %H:%M") }} </font> </small>
+          </div>
+          <div class="project-desc">
+            {{ project.description[:200] }}{% if project.description|length > 200 %}...{% endif %}
+          </div>
         </div>
-      </div>
-    </a>
-  {% else %}
-    <p>Aucun projet pour le moment. Soyez le premier à en créer un !</p>
-  {% endfor %}
-</div>
+      </a>
+    {% else %}
+      <p>Aucun projet pour le moment. Soyez le premier à en créer un !</p>
+    {% endfor %}
+  </div>
 
 {% endblock %}
