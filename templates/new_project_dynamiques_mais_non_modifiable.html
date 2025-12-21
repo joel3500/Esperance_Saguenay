@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Nouveau projet</h2>
+
+<form method="post" enctype="multipart/form-data" class="form-vertical">
+
+  <!-- Ville du projet, préremplie avec la ville de l'utilisateur -->
+  <label for="ville">Ville du projet</label>
+  <input
+    type="text"
+    id="ville"
+    name="ville"
+    placeholder="Ville du projet"
+    value="{{ current_user.ville }}"
+  >
+
+  <!-- Description -->
+  <label for="description">Description du projet</label>
+  <textarea id="description" name="description" rows="5" required></textarea>
+
+  <!-- ======= BESOINS (dynamiques) ======= -->
+  <h3>Liste des besoins</h3>
+
+  <div id="besoins-container">
+    <!-- Une 1re ligne par défaut -->
+    <div class="besoin-row">
+      <input type="text" name="besoins" placeholder="Ex : Nourriture pour l'événement">
+      <button type="button" class="remove-besoin">Supprimer</button>
+    </div>
+  </div>
+
+  <button type="button" id="add-besoin">+ Ajouter un besoin</button>
+
+  <!-- ======= LIENS URL (dynamiques) ======= -->
+  <h3>Liens URL (optionnel)</h3>
+
+  <div id="urls-container">
+    <div class="url-row">
+      <input type="url" name="urls" placeholder="https://exemple.com">
+      <button type="button" class="remove-url">Supprimer</button>
+    </div>
+  </div>
+
+  <button type="button" id="add-url">+ Ajouter un lien</button>
+
+  <!-- Médias -->
+  <h3>Upload des médias (images ou vidéos)</h3>
+  <input type="file" name="medias" multiple>
+
+  <button type="submit">Enregistrer le projet</button>
+</form>
+
+<!-- Petit script JS très simple pour ajouter / supprimer les champs -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // ---- Gestion des BESOINS ----
+        const besoinsContainer = document.getElementById('besoins-container');
+        const addBesoinBtn = document.getElementById('add-besoin');
+
+        function createBesoinRow() {
+        // Crée une ligne <div> avec input + bouton Supprimer
+        const row = document.createElement('div');
+        row.className = 'besoin-row';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.name = 'besoins';
+        input.placeholder = "Ex : Nourriture pour l'événement";
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'remove-besoin';
+        removeBtn.textContent = 'Supprimer';
+
+        // Quand on clique sur Supprimer → on enlève la ligne
+        removeBtn.addEventListener('click', function () {
+            besoinsContainer.removeChild(row);
+        });
+
+        row.appendChild(input);
+        row.appendChild(removeBtn);
+        return row;
+        }
+
+        // Bouton + Ajouter un besoin
+        addBesoinBtn.addEventListener('click', function () {
+        const newRow = createBesoinRow();
+        besoinsContainer.appendChild(newRow);
+        });
+
+        // Attacher l'événement Supprimer à la 1re ligne déjà présente dans le HTML
+        besoinsContainer.querySelectorAll('.remove-besoin').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const row = btn.parentElement;
+            besoinsContainer.removeChild(row);
+        });
+        });
+
+        // ---- Gestion des LIENS URL ----
+        const urlsContainer = document.getElementById('urls-container');
+        const addUrlBtn = document.getElementById('add-url');
+
+        function createUrlRow() {
+        const row = document.createElement('div');
+        row.className = 'url-row';
+
+        const input = document.createElement('input');
+        input.type = 'url';
+        input.name = 'urls';
+        input.placeholder = 'https://exemple.com';
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'remove-url';
+        removeBtn.textContent = 'Supprimer';
+
+        removeBtn.addEventListener('click', function () {
+            urlsContainer.removeChild(row);
+        });
+
+        row.appendChild(input);
+        row.appendChild(removeBtn);
+        return row;
+        }
+
+        addUrlBtn.addEventListener('click', function () {
+        const newRow = createUrlRow();
+        urlsContainer.appendChild(newRow);
+        });
+
+        urlsContainer.querySelectorAll('.remove-url').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const row = btn.parentElement;
+            urlsContainer.removeChild(row);
+        });
+        });
+    });
+    </script>
+
+
+{% endblock %}

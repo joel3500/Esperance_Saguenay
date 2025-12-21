@@ -74,6 +74,15 @@
     }
 }
 
+
+
+
+
+
+
+
+
+
 body {
   font-family: Arial, sans-serif;
   margin: 0;
@@ -187,6 +196,10 @@ footer {
 .project-right {
   flex: 1;
   padding-left: 0.75rem;
+}
+
+.project-header {
+  margin-bottom : 10px;
 }
 
 .project-detail section, .project-detail header, section {

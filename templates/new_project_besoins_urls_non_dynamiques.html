@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+
+    <h2>Nouveau projet</h2>
+
+    <form method="post" enctype="multipart/form-data" class="form-vertical">
+      <label for="ville">Ville</label>
+      <label for="ville">Ville du projet</label>
+      
+      <input
+        type="text"
+        id="ville"
+        name="ville"
+        placeholder="Ville du projet"
+        value="{{ current_user.ville }}"
+      />
+
+      <label for="description">Description du projet</label>
+      <textarea id="description" name="description" rows="5" required></textarea>
+
+      <h3>Liste des besoins</h3>
+      <!-- Le plus simple : 3 champs, tu pourras en ajouter plus tard -->
+      <input type="text" name="besoins" placeholder="Besoin 1 : ">
+      <input type="text" name="besoins" placeholder="Besoin 2 : s'il y a lieu ...">
+      <input type="text" name="besoins" placeholder="Besoin 3 : s'il y a lieu ...">
+
+      <h3>Liens URL (optionnel)</h3>
+      <input type="url" name="urls" placeholder="https://exemple_1.com">
+      <input type="url" name="urls" placeholder="https://exemple_2.com">
+      <input type="url" name="urls" placeholder="https://autre-lien.com">
+
+      <h3>Upload des médias (images ou vidéos)</h3>
+      <input type="file" name="medias" multiple>
+
+      <button type="submit">Enregistrer le projet</button>
+    </form>
+
+{% endblock %}

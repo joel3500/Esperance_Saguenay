@@ -275,7 +275,10 @@ def new_project():
 
     if request.method == "POST":
         description = request.form.get("description", "").strip()
-        ville = request.form.get("ville", "").strip()
+        
+        # On récupère la ville du formulaire, sinon on prend la ville de l'utilisateur
+        ville_form = request.form.get("ville", "").strip()
+        ville = ville_form or current_user.ville
 
         if not description:
             flash("La description du projet est obligatoire.", "warning")
@@ -311,6 +314,65 @@ def new_project():
 
     return render_template("new_project.html", current_user=current_user)
 
+# ======================== Modification d'un projet =================================
+
+@app.route("/project/<int:project_id>/edit/", methods=["GET", "POST"])
+@login_required
+def edit_project(project_id):
+    current_user = get_current_user()
+
+    # On récupère le projet
+    try:
+        project = Project.get_by_id(project_id)
+    except Project.DoesNotExist:
+        flash("Projet introuvable.", "danger")
+        return redirect(url_for("index"))
+
+    # Sécurité : seul le créateur peut modifier son projet
+    if project.createur.id != current_user.id:
+        flash("Vous ne pouvez modifier que vos propres projets.", "danger")
+        return redirect(url_for("project_detail", project_id=project.id))
+
+    if request.method == "POST":
+        description = request.form.get("description", "").strip()
+        ville_form = request.form.get("ville", "").strip()
+        ville = ville_form or current_user.ville
+
+        if not description:
+            flash("La description du projet est obligatoire.", "warning")
+            return redirect(url_for("edit_project", project_id=project.id))
+
+        with db_proxy.atomic():
+            # 1) Mise à jour des champs de base
+            project.description = description
+            project.ville = ville
+            project.save()
+
+            # 2) Mise à jour de la liste des besoins
+            Need.delete().where(Need.project == project).execute()
+            nouveaux_besoins = request.form.getlist("besoins")
+            for b in nouveaux_besoins:
+                b = b.strip()
+                if b:
+                    Need.create(project=project, texte=b)
+
+            # 3) Mise à jour de la liste des liens
+            ProjectLink.delete().where(ProjectLink.project == project).execute()
+            nouveaux_urls = request.form.getlist("urls")
+            for u in nouveaux_urls:
+                u = u.strip()
+                if u:
+                    ProjectLink.create(project=project, url=u)
+
+            # 4) Ajout de nouveaux médias (on garde les anciens)
+            files = request.files.getlist("medias")
+            save_media_files(files, project)
+
+        flash("Projet mis à jour avec succès.", "success")
+        return redirect(url_for("project_detail", project_id=project.id))
+
+    # GET : on réutilise le même formulaire que pour la création
+    return render_template("new_project.html", current_user=current_user, project=project)
 
 # ==================== Commentaires & réponses =====================
 

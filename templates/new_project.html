@@ -1,30 +1,173 @@
 {% extends "base.html" %}
 {% block content %}
 
-    <h2>Nouveau projet</h2>
+{% if project %}
+  <h2>Modifier le projet</h2>
+{% else %}
+  <h2>Nouveau projet</h2>
+{% endif %}
 
-    <form method="post" enctype="multipart/form-data" class="form-vertical">
-      <label for="ville">Ville</label>
-      <input type="text" id="ville" name="ville" placeholder="Saguenay, Chicoutimi, ..." />
+<form method="post" enctype="multipart/form-data" class="form-vertical">
 
-      <label for="description">Description du projet</label>
-      <textarea id="description" name="description" rows="5" required></textarea>
+  <!-- Ville du projet, préremplie avec la ville de l'utilisateur ou celle du projet -->
+  <label for="ville">Ville du projet</label>
+  <input
+    type="text"
+    id="ville"
+    name="ville"
+    placeholder="Ville du projet"
+    value="{{ (project.ville if project else current_user.ville) or '' }}"
+  >
 
-      <h3>Liste des besoins</h3>
-      <!-- Le plus simple : 3 champs, tu pourras en ajouter plus tard -->
-      <input type="text" name="besoins" placeholder="Besoin 1 : ">
-      <input type="text" name="besoins" placeholder="Besoin 2 : s'il y a lieu ...">
-      <input type="text" name="besoins" placeholder="Besoin 3 : s'il y a lieu ...">
+  <!-- Description -->
+  <label for="description">Description du projet</label>
+  <textarea id="description" name="description" rows="5" required>
+{{ project.description if project else '' }}</textarea>
 
-      <h3>Liens URL (optionnel)</h3>
-      <input type="url" name="urls" placeholder="https://exemple_1.com">
-      <input type="url" name="urls" placeholder="https://exemple_2.com">
-      <input type="url" name="urls" placeholder="https://autre-lien.com">
+  <!-- ======= BESOINS (dynamiques) ======= -->
+  <h3>Liste des besoins</h3>
 
-      <h3>Upload des médias (images ou vidéos)</h3>
-      <input type="file" name="medias" multiple>
+  <div id="besoins-container">
+    {% set besoins = project.needs if project else [] %}
+    {% if besoins %}
+        {% for besoin in besoins %}
+            <div class="besoin-row">
+                <input type="text" name="besoins" value="{{ besoin.texte }}">
+                <button type="button" class="remove-besoin">Supprimer</button>
+            </div>
+        {% endfor %}
+    {% else %}
+        <!-- 1 ligne par défaut si aucun besoin existant -->
+        <div class="besoin-row">
+            <input type="text" name="besoins" placeholder="Ex : Nourriture pour l'événement">
+            <button type="button" class="remove-besoin">Supprimer</button>
+        </div>
+    {% endif %}
+  </div>
 
-      <button type="submit">Enregistrer le projet</button>
-    </form>
+  <button type="button" id="add-besoin">+ Ajouter un besoin</button>
+
+  <!-- ======= LIENS URL (dynamiques) ======= -->
+  <h3>Liens URL (optionnel)</h3>
+
+  <div id="urls-container">
+    {% set liens = project.links if project else [] %}
+    {% if liens %}
+      {% for l in liens %}
+        <div class="url-row">
+          <input type="url" name="urls" value="{{ l.url }}">
+          <button type="button" class="remove-url">Supprimer</button>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="url-row">
+        <input type="url" name="urls" placeholder="https://exemple.com">
+        <button type="button" class="remove-url">Supprimer</button>
+      </div>
+    {% endif %}
+  </div>
+
+  <button type="button" id="add-url">+ Ajouter un lien</button>
+
+  <!-- Médias -->
+  <h3>Médias du projet</h3>
+  {% if project and project.medias %}
+    <p>Médias déjà enregistrés :</p>
+    <ul>
+      {% for m in project.medias %}
+        <li>{{ m.filename }} ({{ m.media_type }})</li>
+      {% endfor %}
+    </ul>
+    <p>Vous pouvez ajouter d'autres fichiers ci-dessous (les fichiers existants seront conservés).</p>
+  {% endif %}
+  <input type="file" name="medias" multiple>
+
+  <button type="submit">
+    {% if project %}Enregistrer les modifications{% else %}Enregistrer le projet{% endif %}
+  </button>
+</form>
+
+<!-- Script JS pour gérer les champs dynamiques -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // ---- BESOINS ----
+    const besoinsContainer = document.getElementById('besoins-container');
+    const addBesoinBtn = document.getElementById('add-besoin');
+
+    function attachRemoveBesoin(btn) {
+      btn.addEventListener('click', function () {
+        const row = btn.parentElement;
+        besoinsContainer.removeChild(row);
+      });
+    }
+
+    function createBesoinRow() {
+      const row = document.createElement('div');
+      row.className = 'besoin-row';
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.name = 'besoins';
+      input.placeholder = "Ex : Nourriture pour l'événement";
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'remove-besoin';
+      removeBtn.textContent = 'Supprimer';
+
+      attachRemoveBesoin(removeBtn);
+
+      row.appendChild(input);
+      row.appendChild(removeBtn);
+      return row;
+    }
+
+    addBesoinBtn.addEventListener('click', function () {
+      const newRow = createBesoinRow();
+      besoinsContainer.appendChild(newRow);
+    });
+
+    besoinsContainer.querySelectorAll('.remove-besoin').forEach(attachRemoveBesoin);
+
+    // ---- URLS ----
+    const urlsContainer = document.getElementById('urls-container');
+    const addUrlBtn = document.getElementById('add-url');
+
+    function attachRemoveUrl(btn) {
+      btn.addEventListener('click', function () {
+        const row = btn.parentElement;
+        urlsContainer.removeChild(row);
+      });
+    }
+
+    function createUrlRow() {
+      const row = document.createElement('div');
+      row.className = 'url-row';
+
+      const input = document.createElement('input');
+      input.type = 'url';
+      input.name = 'urls';
+      input.placeholder = 'https://exemple.com';
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'remove-url';
+      removeBtn.textContent = 'Supprimer';
+
+      attachRemoveUrl(removeBtn);
+
+      row.appendChild(input);
+      row.appendChild(removeBtn);
+      return row;
+    }
+
+    addUrlBtn.addEventListener('click', function () {
+      const newRow = createUrlRow();
+      urlsContainer.appendChild(newRow);
+    });
+
+    urlsContainer.querySelectorAll('.remove-url').forEach(attachRemoveUrl);
+  });
+</script>
 
 {% endblock %}

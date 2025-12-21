@@ -9,6 +9,15 @@
           – {{ project.ville or "Ville inconnue" }}<br>
           <small> <font color="blue">Soumis le {{ project.created_at.strftime("%d/%m/%Y à %H:%M") }} </font> </small>
       </p>
+
+      {% if current_user and current_user.id == project.createur.id %}
+        <p>
+          <a href="{{ url_for('edit_project', project_id=project.id) }}">
+            Apporter une modification à ce projet
+          </a>
+        </p>
+      {% endif %}
+      
   </header>
 
   <section>

@@ -16,6 +16,6 @@ esperance_saguenay/
     ├─ css/
     │   └─ style.css
     ├─ img/
-    │   └─ image_principale_centraide.jpg   # ta bannière principale
+    │   └─ image_principale_centraide.jpg   # ma bannière principale
     └─ uploads/
         └─ (images et vidéos des projets)
