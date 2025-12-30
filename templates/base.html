@@ -21,6 +21,7 @@
     {% if current_user %}
       <span>Bonjour {{ current_user.prenom }} {{ current_user.nom }}</span>
       <a href="{{ url_for('new_project') }}">Nouveau projet</a>
+      <a href="{{ url_for('delete_account') }}">Supprimer mon compte</a>
       <a href="{{ url_for('logout') }}">Se déconnecter</a>
     {% else %}
       <a href="{{ url_for('signup') }}">Créer un compte</a>

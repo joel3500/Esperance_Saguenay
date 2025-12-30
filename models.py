@@ -3,7 +3,7 @@ import datetime
 import os
 
 from peewee import (
-    Model, CharField, TextField, DateTimeField,
+    Model, CharField, TextField, DateTimeField, BooleanField,
     ForeignKeyField, DatabaseProxy, SqliteDatabase
 )
 from playhouse.postgres_ext import PostgresqlExtDatabase
@@ -25,6 +25,12 @@ class User(BaseModel):
     password_hash = CharField()
     created_at = DateTimeField(default=datetime.datetime.now)
 
+    # Quand un utilisateur s’inscrit → on lui envoie un code à 5 chiffres par email → il doit le saisir pour valider son compte.
+    # Un utilisateur peut supprimer son compte.
+    
+    is_verified = BooleanField(default=False)           # → compte validé ou non
+    verification_code = CharField(null=True)            # → le code 5 chiffres
+    verification_created_at = DateTimeField(null=True)  # → quand le code a été généré
 
 class Project(BaseModel):
     createur = ForeignKeyField(User, backref="projects")

@@ -8,8 +8,15 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
 from models import (init_database, db_proxy, User, Project, Need, Media, ProjectLink, Comment)
-# ========================= Comportement de retour èa la ligne ====================
+
+# ========================= Comportement de retour èa la ligne ======================================== #
 from markupsafe import Markup, escape
+
+# ========================= générer & “envoyer” le code de validation pour un compte ================== # 
+import random
+import datetime
+import smtplib
+from email.message import EmailMessage
 
 # ========================= Configuration de base ==========================
 
@@ -27,15 +34,13 @@ app.config["UPLOAD_FOLDER"] = str(UPLOAD_FOLDER)
 # On initialise la base ici, une seule fois au démarrage
 init_database()
 
-# ================================ Helpers ===========================
+# ================================ Helpers =========================== #
 # ... après init_database()
-
 @app.before_request
 def _db_connect():
     """Ouvre une connexion DB au début de chaque requête."""
     if db_proxy.is_closed():
         db_proxy.connect(reuse_if_open=True)
-
 
 @app.teardown_request
 def _db_close(exc):
@@ -43,7 +48,64 @@ def _db_close(exc):
     if not db_proxy.is_closed():
         db_proxy.close()
 
+# ======================== Fin de l'innitiation de la BD =========================== #
 
+# ================== Validation de compte utilisateur ========================= #
+def generate_verification_code() -> str:
+    """
+    Génère un code à 5 chiffres (string, avec zéros devant si besoin).
+    Exemple : '00427'
+    """
+    return f"{random.randint(0, 99999):05d}"
+
+def send_verification_email(email: str, code: str):
+    """
+    Envoie (ou simule l'envoi) d'un email de vérification.
+    Pour rester simple :
+    - si les variables SMTP ne sont pas configurées, on affiche le code dans la console.
+    - sinon, on envoie un vrai email via SMTP.
+    """
+
+    smtp_host = os.getenv("SMTP_HOST")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_password = os.getenv("SMTP_PASSWORD")
+    from_email = os.getenv("FROM_EMAIL", smtp_user)
+
+    subject = "Votre code de vérification - Espérance Saguenay"
+    body = (
+        f"Bonjour,\n\n"
+        f"Voici votre code de vérification Espérance Saguenay : {code}\n\n"
+        f"Entrez ce code sur la page de vérification pour activer votre compte.\n\n"
+        f"- Espérance Saguenay"
+    )
+
+    # Si on n'a pas de configuration SMTP, on se contente de l'afficher dans les logs.
+    if not (smtp_host and smtp_user and smtp_password and from_email):
+        print("=== EMAIL DE VÉRIFICATION (mode console) ===")
+        print(f"À : {email}")
+        print(f"CODE : {code}")
+        print("===========================================")
+        return
+
+    # Sinon, tentative d'envoi réel
+    try:
+        msg = EmailMessage()
+        msg["Subject"] = subject
+        msg["From"] = from_email
+        msg["To"] = email
+        msg.set_content(body)
+
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_password)
+            server.send_message(msg)
+        print(f"Email de vérification envoyé à {email}")
+    except Exception as exc:
+        print("Erreur lors de l'envoi de l'email :", exc)
+        print("Code de vérification :", code)
+
+#=============================== Fin de Validation de compte ================== #
 def login_required(f):
     # Petit décorateur pour protéger certaines routes
     @wraps(f)
@@ -54,7 +116,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# ==== Comportement pour retours àa la ligne.
+# ==== Comportement pour retours à la ligne.
 @app.template_filter("nl2br")
 def nl2br(value):
     # Transforme les retours à la ligne (\n) en balises <br>
@@ -138,8 +200,29 @@ def seed_admin():
             is_admin="yes"
         )
 
+# ----- Seed owner -----
+def seed_owner():
+    owner_prenom  = "Fehmi"
+    owner_nom     = "Jaafar"
+    owner_ville   = "La Baie"
+    owner_email   = "fjaafar@uqac.ca"
+    owner_pwd     = "FJ_prof_uqac_2025"
+
+    u = User.get_or_none(User.email == owner_email.lower())
+    if not u:
+        User.create(
+            prenom=owner_prenom,
+            nom=owner_nom,
+            ville=owner_ville,
+            email=owner_email.lower(),
+            password_hash=generate_password_hash(owner_pwd),
+            is_owner="yes"
+        )
+
+# ON cree l'admin
 seed_admin()
-# seed_proprietaire()
+# ON cree le Propriétaire
+seed_owner()
 
 # ========================== Routes publiques =================================
 
@@ -174,7 +257,6 @@ def vision_et_mission():
         projects=projects,
         current_user=current_user
     )
-
 
 @app.route("/project/<int:project_id>/")
 def project_detail(project_id):
@@ -222,20 +304,75 @@ def signup():
 
         password_hash = generate_password_hash(mot_de_passe)
 
+        # Génération du code de vérification
+        code = generate_verification_code()
+        now = datetime.datetime.now()
+
         with db_proxy.atomic():
             user = User.create(
                 prenom=prenom,
                 nom=nom,
                 ville=ville,
                 email=email,
-                password_hash=password_hash
+                password_hash=password_hash,
+                is_verified=False,
+                verification_code=code,
+                verification_created_at=now,
             )
 
-        session["user_id"] = user.id
-        flash("Inscription réussie, bienvenue!", "success")
-        return redirect(url_for("index"))
+        # Envoi (ou simulation) du mail
+        send_verification_email(user.email, code)
+
+        flash(
+            "Inscription enregistrée. Un code de vérification a été envoyé à votre email. "
+            "Veuillez le saisir pour activer votre compte.",
+            "info",
+        )
+        # On ne le connecte PAS encore : il doit d'abord vérifier son compte
+        return redirect(url_for("verify_account", email=user.email))
 
     return render_template("signup.html")
+
+
+@app.route("/verify/", methods=["GET", "POST"])
+def verify_account():
+    # email pré-rempli éventuel (quand on vient juste de s'inscrire)
+    prefill_email = request.args.get("email", "").strip().lower()
+
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        code = request.form.get("code", "").strip()
+
+        if not (email and code):
+            flash("Veuillez saisir votre email et le code de vérification.", "warning")
+            return redirect(url_for("verify_account", email=email))
+
+        try:
+            user = User.get(User.email == email)
+        except User.DoesNotExist:
+            flash("Aucun compte trouvé avec cet email.", "danger")
+            return redirect(url_for("verify_account"))
+
+        if user.is_verified:
+            flash("Ce compte est déjà vérifié, vous pouvez vous connecter.", "info")
+            return redirect(url_for("login"))
+
+        if user.verification_code != code:
+            flash("Code de vérification invalide.", "danger")
+            return redirect(url_for("verify_account", email=email))
+
+        # Tout est bon : on active le compte
+        user.is_verified = True
+        user.verification_code = None
+        user.verification_created_at = None
+        user.save()
+
+        flash("Votre compte a été vérifié avec succès. Vous pouvez maintenant vous connecter.", "success")
+        return redirect(url_for("login"))
+
+    # GET
+    return render_template("verify_account.html", prefill_email=prefill_email)
+
 
 @app.route("/login/", methods=["GET", "POST"])
 def login():
@@ -252,6 +389,15 @@ def login():
         if not check_password_hash(user.password_hash, mot_de_passe):
             flash("Identifiants invalides.", "danger")
             return redirect(url_for("login"))
+
+        # Vérification du compte
+        if not user.is_verified:
+            flash(
+                "Votre compte n'est pas encore vérifié. "
+                "Veuillez saisir le code reçu par email.",
+                "warning"
+            )
+            return redirect(url_for("verify_account", email=user.email))
 
         session["user_id"] = user.id
         flash("Connexion réussie.", "success")
@@ -462,6 +608,45 @@ def delete_comment(comment_id):
 
     flash("Commentaire supprimé.", "info")
     return redirect(url_for("project_detail", project_id=project_id))
+
+# “Un utilisateur doit pouvoir supprimer son compte.”
+# ajouter un lien “Supprimer mon compte” visible uniquement pour un user connecté
+# au moment de la suppression, on :
+# supprime les projets de cet utilisateur (et ce qui dépend d’eux),
+# supprime ses commentaires,
+# supprime le compte,
+# vide la session.
+@app.route("/account/delete/", methods=["GET", "POST"])
+@login_required
+def delete_account():
+    current_user = get_current_user()
+
+    if request.method == "POST":
+        # On supprime les données liées à cet utilisateur
+        with db_proxy.atomic():
+            # 1) Supprimer les commentaires de l'utilisateur
+            Comment.delete().where(Comment.auteur == current_user).execute()
+
+            # 2) Supprimer les projets créés par l'utilisateur
+            projects = list(Project.select().where(Project.createur == current_user))
+            for p in projects:
+                # On supprime d'abord tout ce qui dépend du projet
+                Need.delete().where(Need.project == p).execute()
+                ProjectLink.delete().where(ProjectLink.project == p).execute()
+                Media.delete().where(Media.project == p).execute()
+                Comment.delete().where(Comment.project == p).execute()
+                p.delete_instance()
+
+            # 3) Supprimer l'utilisateur
+            current_user.delete_instance()
+
+        # 4) Déconnexion
+        session.clear()
+        flash("Votre compte et vos projets ont été supprimés.", "info")
+        return redirect(url_for("index"))
+
+    # GET : afficher une page de confirmation simple
+    return render_template("account_delete.html", current_user=current_user)
 
 # ==================== main ================================== #
 
