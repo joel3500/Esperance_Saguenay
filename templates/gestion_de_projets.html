@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Gérer les projets</h2>
+
+<p>Seuls les projets validés et non archivés/non supprimés sont visibles sur la page d'accueil.</p>
+
+<table class="admin-projects-table">
+  <thead>
+    <tr>
+      <th>No</th>
+      <th>Contenu</th>
+      <th>En attente</th>
+      <th>Validé</th>
+      <th>Archiver</th>
+      <th>Désarchiver</th>
+      <th>Supprimer</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for project in projects %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>
+          <strong>Projet #{{ project.id }}</strong><br>
+          {{ project.description[:160] }}{% if project.description|length > 160 %}...{% endif %}<br>
+          <small>
+            {{ project.ville or "Ville inconnue" }} –
+            par {{ project.createur.prenom }} {{ project.createur.nom }} –
+            {{ project.created_at.strftime("%d/%m/%Y %H:%M") }}
+          </small>
+        </td>
+        <td>
+          <form method="post">
+            <input type="hidden" name="project_id" value="{{ project.id }}">
+            {% if project.status == "pending" %}
+              
+            {% else %}
+              <button type="submit" name="action" value="set_pending">Mettre en attente</button>
+            {% endif %}
+          </form>
+        </td>
+        <td>
+          <form method="post">
+            <input type="hidden" name="project_id" value="{{ project.id }}">
+            {% if project.status == "validated" %}
+              
+            {% else %}
+              <button type="submit" name="action" value="validate">Valider</button>
+            {% endif %}
+          </form>
+        </td>
+        <td>
+          <form method="post">
+            <input type="hidden" name="project_id" value="{{ project.id }}">
+            {% if project.status == "archived" %}
+              
+            {% elif project.status == "validated" %}
+              <button type="submit" name="action" value="archive">Archiver</button>
+            {% else %}
+              <!-- Rien: on ne peut archiver qu'un projet validé -->
+            {% endif %}
+          </form>
+        </td>
+        <td>
+          <form method="post">
+            <input type="hidden" name="project_id" value="{{ project.id }}">
+            {% if project.status == "archived" %}
+              <button type="submit" name="action" value="unarchive">Désarchiver</button>
+            {% endif %}
+          </form>
+        </td>
+        <td>
+          <form method="post" onsubmit="return confirm('Supprimer ce projet de la liste ?');">
+            <input type="hidden" name="project_id" value="{{ project.id }}">
+            <button type="submit" name="action" value="delete">Supprimer</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

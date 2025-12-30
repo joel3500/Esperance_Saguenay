@@ -9,6 +9,7 @@
 
 
 /*============= <= 480px (Telephone PORTABLE) : empile tout en 1 colonne, boutons full width  */
+
 @media (max-width: 480px) {
     
     body {
@@ -26,7 +27,7 @@
     }
 
     .banner {
-      height: 70%;
+      height: 60%;
     }
 
     .form-vertical input,
@@ -59,7 +60,7 @@
     }
 
     .banner {
-      height: 70%;
+      height: 60%;
     }
 
     .form-vertical input,
@@ -278,3 +279,6 @@ footer {
   box-sizing: border-box;
 }
 
+/*===============================================================================*/
+/*                        Style pour la Gestion de Projets                       */
+/*===============================================================================*/

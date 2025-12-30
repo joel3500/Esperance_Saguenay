@@ -23,6 +23,9 @@
       <a href="{{ url_for('new_project') }}">Nouveau projet</a>
       <a href="{{ url_for('delete_account') }}">Supprimer mon compte</a>
       <a href="{{ url_for('logout') }}">Se déconnecter</a>
+      {% if is_admin %}
+          <a href="{{ url_for('manage_projects') }}">Gérer les projets</a>
+      {% endif %}
     {% else %}
       <a href="{{ url_for('signup') }}">Créer un compte</a>
       <a href="{{ url_for('login') }}">Se connecter</a>
