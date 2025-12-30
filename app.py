@@ -128,15 +128,6 @@ def nl2br(value):
     lines = escape(value).splitlines()
     return Markup("<br>".join(lines))
 
-def get_current_user():
-    # Retourne l'objet User courant ou None.
-    user_id = session.get("user_id")
-    if not user_id:
-        return None
-    try :
-        return User.get_by_id(user_id)
-    except User.DoesNotExist:
-        return None
 
 def save_media_files(files, project):
     # Enregistre les fichiers envoyés pour un projet.
@@ -162,6 +153,16 @@ def save_media_files(files, project):
             filename=filename,
             media_type=media_type
         )
+
+def get_current_user():
+    # Retourne l'objet User courant ou None.
+    user_id = session.get("user_id")
+    if not user_id:
+        return None
+    try :
+        return User.get_by_id(user_id)
+    except User.DoesNotExist:
+        return None
 
 # ----- Helpers -----
 def current_user():
@@ -216,7 +217,7 @@ def seed_owner():
             ville=owner_ville,
             email=owner_email.lower(),
             password_hash=generate_password_hash(owner_pwd),
-            is_owner="yes"
+            is_admin="yes"
         )
 
 # ON cree l'admin
@@ -224,23 +225,37 @@ seed_admin()
 # ON cree le Propriétaire
 seed_owner()
 
+def is_admin_user(user) -> bool:
+    admin_email = os.getenv("ADMIN_EMAIL", "").strip().lower()
+    owner_email = os.getenv("OWNER_EMAIL", "").strip().lower()
+    return bool(user and user.email.lower() == admin_email    or    user and user.email.lower() == owner_email)
+
+@app.context_processor
+def inject_user():
+    user = get_current_user()
+    return {
+        "current_user": user,
+        "is_admin": is_admin_user(user),
+    }
+
 # ========================== Routes publiques =================================
 
 @app.route("/")
 def index():
-    # Page d'accueil : liste des projets.
+    # Page d'accueil : seulement les projets validés, non archivés, non supprimés
     projects = (
         Project
         .select()
+        .where(
+            (Project.status == "validated") &
+            (Project.deleted_by_admin == False)
+        )
         .order_by(Project.created_at.desc())
         .join(User)
     )
     current_user = get_current_user()
-    return render_template(
-        "index.html",
-        projects=projects,
-        current_user=current_user
-    )
+    return render_template("index.html", projects=projects, current_user=current_user)
+
 
 @app.route("/vision_et_mission")
 def vision_et_mission():
@@ -647,6 +662,60 @@ def delete_account():
 
     # GET : afficher une page de confirmation simple
     return render_template("account_delete.html", current_user=current_user)
+
+# On code la page gestion_de_projets.
+@app.route("/admin/projects/", methods=["GET", "POST"])
+@admin_required
+def manage_projects():
+    user = get_current_user()
+
+    if request.method == "POST":
+        project_id = int(request.form.get("project_id", "0") or "0")
+        action = request.form.get("action", "")
+
+        try:
+            project = Project.get_by_id(project_id)
+        except Project.DoesNotExist:
+            flash("Projet introuvable.", "danger")
+            return redirect(url_for("manage_projects"))
+
+        with db_proxy.atomic():
+            if action == "set_pending":
+                project.status = "pending"
+                project.deleted_by_admin = False
+
+            elif action == "validate":
+                project.status = "validated"
+                project.deleted_by_admin = False
+
+            elif action == "archive":
+                # On archive uniquement un projet validé
+                if project.status == "validated":
+                    project.status = "archived"
+
+            elif action == "unarchive":
+                # On remet un projet archivé en "validé"
+                if project.status == "archived":
+                    project.status = "validated"
+
+            elif action == "delete":
+                project.deleted_by_admin = True
+
+            project.save()
+
+        flash("Statut du projet mis à jour.", "success")
+        return redirect(url_for("manage_projects"))
+
+    # GET : afficher tous les projets non supprimés
+    projects = (
+        Project
+        .select()
+        .where(Project.deleted_by_admin == False)
+        .order_by(Project.created_at.desc())
+        .join(User)
+    )
+
+    return render_template("gestion_de_projets.html", projects=projects, current_user=user)
 
 # ==================== main ================================== #
 
