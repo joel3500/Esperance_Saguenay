@@ -7,7 +7,7 @@ from flask import (Flask, render_template, request, redirect, url_for, session, 
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
-from models import (init_database, db_proxy, User, Project, Need, Media, ProjectLink, Comment)
+from models import (init_database, db_proxy, Contribution, User, Project, Need, Media, ProjectLink, Comment, Need, Contribution)
 
 # ========================= Comportement de retour èa la ligne ======================================== #
 from markupsafe import Markup, escape
@@ -18,7 +18,14 @@ import datetime
 import smtplib
 from email.message import EmailMessage
 
+from dotenv import load_dotenv
+
+# pour la contribution
+from peewee import fn, JOIN
+
 # ========================= Configuration de base ==========================
+
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
 UPLOAD_FOLDER = BASE_DIR / "static" / "uploads"
@@ -66,9 +73,9 @@ def send_verification_email(email: str, code: str):
     - sinon, on envoie un vrai email via SMTP.
     """
 
-    smtp_host = os.getenv("SMTP_HOST")
+    smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
     smtp_port = int(os.getenv("SMTP_PORT", "587"))
-    smtp_user = os.getenv("SMTP_USER")
+    smtp_user = os.getenv("SMTP_USER", "docjoel007@gmail.com")
     smtp_password = os.getenv("SMTP_PASSWORD")
     from_email = os.getenv("FROM_EMAIL", smtp_user)
 
@@ -105,7 +112,7 @@ def send_verification_email(email: str, code: str):
         print("Erreur lors de l'envoi de l'email :", exc)
         print("Code de vérification :", code)
 
-#=============================== Fin de Validation de compte ================== #
+#==================== Fin de Validation de compte ================== #
 def login_required(f):
     # Petit décorateur pour protéger certaines routes
     @wraps(f)
@@ -164,61 +171,126 @@ def get_current_user():
     except User.DoesNotExist:
         return None
 
-# ----- Helpers -----
-def current_user():
-    uid = session.get("uid")
-    if not uid: return None
-    try:
-        return User.get_by_id(uid)
-    except:
-        return None
-
 def admin_required():
-    u = current_user()
-    if not u or u.is_admin != "yes":
-        flash("Accès admin requis.")
-        return redirect(url_for('index'))
+    user = get_current_user()
+    if not user or not user.is_admin:
+        flash("Accès admin requis.", "danger")
+        return redirect(url_for("index"))
 
 def is_owner_or_admin(owner_user_id):
-    u = current_user()
-    return u and (u.is_admin == "yes" or (owner_user_id is not None and u.id == owner_user_id))
+    u = get_current_user()
+    return u and (u.is_admin or (owner_user_id is not None and u.id == owner_user_id))
 
 # ----- Seed admin -----
 def seed_admin():
-    admin_prenom  = "Joel"
-    admin_nom     = "Sandé"
-    admin_ville   = "Chicoutimi"
-    admin_email   = "docjoel007@gmail.com"
-    admin_pwd     = "Episte_Plous2025"
-    u = User.get_or_none(User.email == admin_email.lower())
-    if not u:
-        User.create(
-            prenom=admin_prenom,
-            nom=admin_nom,
-            ville=admin_ville,
-            email=admin_email.lower(),
-            password_hash=generate_password_hash(admin_pwd),
-            is_admin="yes"
-        )
+    """
+    Crée (ou met à jour) un compte admin au démarrage.
+    Utilise ADMIN_EMAIL et ADMIN_PASSWORD si présents dans l'environnement.
+    """
+
+    admin_email = os.getenv("ADMIN_EMAIL", "").strip().lower()
+    admin_pwd = os.getenv("ADMIN_PASSWORD", "").strip()
+
+    # Valeurs par défaut si les variables ne sont pas mises (en dev)
+    if not admin_email:
+        admin_email = "admin@example.com"
+    if not admin_pwd:
+        admin_pwd = "changement123"
+
+    admin_prenom = "Joel"
+    admin_nom = "Sandé"
+    admin_ville = "Chicoutimi"
+
+    # Ouvrir une connexion car on est hors requête HTTP
+    if db_proxy.is_closed():
+        db_proxy.connect(reuse_if_open=True)
+
+    try:
+        with db_proxy.atomic():
+            # On essaie de récupérer l'utilisateur admin
+            user, created = User.get_or_create(
+                email=admin_email,
+                defaults={
+                    "prenom": admin_prenom,
+                    "nom": admin_nom,
+                    "ville": admin_ville,
+                    "password_hash": generate_password_hash(admin_pwd),
+                    "is_admin": True,
+                    "is_verified": True,
+                    "verification_code": None,
+                    "verification_created_at": None,
+                },
+            )
+
+            if not created:
+                # S'il existe déjà, on s'assure qu'il est bien admin + vérifié
+                user.is_admin = True
+                user.is_verified = True
+                user.verification_code = None
+                user.verification_created_at = None
+                user.save()    # ici c'est BIEN user.save(), pas User.save()
+
+            print(f"Compte admin prêt : {user.email}")
+
+    finally:
+        if not db_proxy.is_closed():
+            db_proxy.close()
+
 
 # ----- Seed owner -----
 def seed_owner():
-    owner_prenom  = "Fehmi"
-    owner_nom     = "Jaafar"
-    owner_ville   = "La Baie"
-    owner_email   = "fjaafar@uqac.ca"
-    owner_pwd     = "FJ_prof_uqac_2025"
+    """
+    Crée (ou met à jour) un compte owner au démarrage.
+    Utilise OWNER_EMAIL et OWNER_PASSWORD si présents dans l'environnement.
+    """
 
-    u = User.get_or_none(User.email == owner_email.lower())
-    if not u:
-        User.create(
-            prenom=owner_prenom,
-            nom=owner_nom,
-            ville=owner_ville,
-            email=owner_email.lower(),
-            password_hash=generate_password_hash(owner_pwd),
-            is_admin="yes"
-        )
+    owner_email = os.getenv("OWNER_EMAIL", "").strip().lower()
+    owner_pwd = os.getenv("OWNER_PASSWORD", "").strip()
+
+    # Valeurs par défaut si les variables ne sont pas mises (en dev)
+    if not owner_email:
+        owner_email = "owner@example.com"
+    if not owner_pwd:
+        owner_pwd = "changement456"
+
+    owner_prenom = "Fehmi"
+    owner_nom = "Jaafar"
+    owner_ville = "La Baie"
+
+    # Ouvrir une connexion car on est hors requête HTTP
+    if db_proxy.is_closed():
+        db_proxy.connect(reuse_if_open=True)
+
+    try:
+        with db_proxy.atomic():
+            # On essaie de récupérer l'utilisateur admin
+            user, created = User.get_or_create(
+                email=owner_email,
+                defaults={
+                    "prenom": owner_prenom,
+                    "nom": owner_nom,
+                    "ville": owner_ville,
+                    "password_hash": generate_password_hash(owner_pwd),
+                    "is_admin": True,
+                    "is_verified": True,
+                    "verification_code": None,
+                    "verification_created_at": None,
+                },
+            )
+
+            if not created:
+                # S'il existe déjà, on s'assure qu'il est bien admin + vérifié
+                user.is_admin = True
+                user.is_verified = True
+                user.verification_code = None
+                user.verification_created_at = None
+                user.save()    # ici c'est BIEN user.save(), pas User.save()
+
+            print(f"Compte proprietaire prêt : {user.email}")
+
+    finally:
+        if not db_proxy.is_closed():
+            db_proxy.close()
 
 # ON cree l'admin
 seed_admin()
@@ -229,6 +301,7 @@ def is_admin_user(user) -> bool:
     admin_email = os.getenv("ADMIN_EMAIL", "").strip().lower()
     owner_email = os.getenv("OWNER_EMAIL", "").strip().lower()
     return bool(user and user.email.lower() == admin_email    or    user and user.email.lower() == owner_email)
+
 
 @app.context_processor
 def inject_user():
@@ -273,6 +346,7 @@ def vision_et_mission():
         current_user=current_user
     )
 
+
 @app.route("/project/<int:project_id>/")
 def project_detail(project_id):
     # Page détaillée d'un projet + commentaires.
@@ -282,7 +356,12 @@ def project_detail(project_id):
         flash("Projet introuvable.", "danger")
         return redirect(url_for("index"))
 
-    # On précharge commentaires + auteurs
+    # (Optionnel) Compteur de visites pour les stats
+    with db_proxy.atomic():
+         project.visits_count += 1
+         project.save()
+
+    # On précharge commentaires + auteurs (Les commentaires sont séparés de l'endroit ou on contribue pour ne pas mélanger les choses)
     comments = (
         Comment
         .select()
@@ -290,12 +369,31 @@ def project_detail(project_id):
         .order_by(Comment.created_at.desc())
     )
 
+    # Besoins du projet
+    needs = list(Need.select().where(Need.project == project))
+
+    # Pré-calcul : somme des contributions par besoin
+    contributions_by_need = {n.id: 0 for n in needs}
+    need_ids = [n.id for n in needs]
+
+    if need_ids:
+        query = (
+            Contribution
+            .select(Contribution.need, fn.SUM(Contribution.amount).alias("total"))
+            .where(Contribution.need.in_(need_ids))
+            .group_by(Contribution.need)
+        )
+        for row in query:
+            contributions_by_need[row.need.id] = row.total or 0
+
     current_user = get_current_user()
     return render_template(
         "project_detail.html",
         project=project,
         comments=comments,
-        current_user=current_user
+        current_user=current_user,
+        needs=needs,
+        contributions_by_need=contributions_by_need
     )
 
 # =========================== Authentification =========================
@@ -453,11 +551,37 @@ def new_project():
             )
 
             # Liste des besoins (plusieurs inputs avec le même name="besoins")
-            besoins = request.form.getlist("besoins")
-            for b in besoins:
-                b = b.strip()
-                if b:
-                    Need.create(project=project, texte=b)
+            besoins_texte = request.form.getlist("besoins_texte")
+            besoins_montant = request.form.getlist("besoins_montant")
+
+            for idx, texte in enumerate(besoins_texte):
+                texte = (texte or "").strip()
+                if not texte:
+                    continue
+
+                montant_raw = ""
+                if idx < len(besoins_montant):
+                    montant_raw = (besoins_montant[idx] or "").strip()
+
+                amount_goal = None
+                is_money = False
+
+                if montant_raw:
+                    try:
+                        val = int(montant_raw)
+                        if val > 0:
+                            amount_goal = val
+                            is_money = True
+                    except ValueError:
+                        # Si la valeur est pourrie, on ignore le montant et on laisse le besoin non financier
+                        pass
+
+                Need.create(
+                    project=project,
+                    texte=texte,
+                    is_money=is_money,
+                    amount_goal=amount_goal
+                )
 
             # Liste des liens URL
             urls = request.form.getlist("urls")
@@ -663,11 +787,14 @@ def delete_account():
     # GET : afficher une page de confirmation simple
     return render_template("account_delete.html", current_user=current_user)
 
+
 # On code la page gestion_de_projets.
 @app.route("/admin/projects/", methods=["GET", "POST"])
-@admin_required
 def manage_projects():
     user = get_current_user()
+    if not user or not user.is_admin :
+        flash("Accès admin requis.")
+        return redirect(url_for('index'))
 
     if request.method == "POST":
         project_id = int(request.form.get("project_id", "0") or "0")
@@ -714,10 +841,209 @@ def manage_projects():
         .order_by(Project.created_at.desc())
         .join(User)
     )
-
     return render_template("gestion_de_projets.html", projects=projects, current_user=user)
 
-# ==================== main ================================== #
+# ===================== Suppression d'un projet (par son auteur) =====================
+
+@app.route("/project/<int:project_id>/delete/", methods=["POST"])
+@login_required
+def delete_project(project_id):
+    current_user = get_current_user()
+
+    # On récupère le projet
+    try:
+        project = Project.get_by_id(project_id)
+    except Project.DoesNotExist:
+        flash("Projet introuvable.", "danger")
+        return redirect(url_for("index"))
+
+    # Sécurité : seul le créateur OU un admin peuvent supprimer
+    # (si tu veux que seuls les créateurs puissent, enlève le "or current_user.is_admin")
+    if project.createur.id != current_user.id and not current_user.is_admin:
+        flash("Vous ne pouvez supprimer que vos propres projets.", "danger")
+        return redirect(url_for("project_detail", project_id=project.id))
+
+    # On supprime tout ce qui dépend du projet, pour ne pas laisser d'orphelins
+    with db_proxy.atomic():
+        Comment.delete().where(Comment.project == project).execute()
+        Need.delete().where(Need.project == project).execute()
+        ProjectLink.delete().where(ProjectLink.project == project).execute()
+        Media.delete().where(Media.project == project).execute()
+
+        # Enfin, on supprime le projet lui-même
+        project.delete_instance()
+
+    flash("Projet supprimé avec succès.", "success")
+    return redirect(url_for("index"))
+
+
+# On reste simple : un formulaire avec un input “montant”, et une route POST.
+@app.route("/need/<int:need_id>/contribuer/", methods=["POST"])
+@login_required
+def contribute_to_need(need_id):
+    user = get_current_user()
+
+    try:
+        need = Need.get_by_id(need_id)
+    except Need.DoesNotExist:
+        flash("Besoin introuvable.", "danger")
+        return redirect(url_for("index"))
+
+    # On récupère le montant saisi
+    raw_amount = (request.form.get("amount") or "").strip()
+    try:
+        amount = int(raw_amount)
+    except ValueError:
+        amount = 0
+
+    if amount <= 0:
+        flash("Montant invalide.", "danger")
+        return redirect(url_for("project_detail", project_id=need.project.id))
+
+    # Optionnel : empêcher de dépasser le montant restant
+    total_contrib = (
+        Contribution
+        .select(fn.SUM(Contribution.amount))
+        .where(Contribution.need == need)
+        .scalar() or 0
+    )
+    remaining = (need.amount_goal or 0) - total_contrib
+    if need.is_money and need.amount_goal and amount > remaining:
+        flash(f"Il ne reste que {remaining}$ à contribuer pour ce besoin.", "warning")
+        return redirect(url_for("project_detail", project_id=need.project.id))
+
+    # On enregistre la contribution
+    with db_proxy.atomic():
+        Contribution.create(
+            need=need,
+            user=user,
+            amount=amount,
+        )
+
+    flash("Merci pour votre contribution !", "success")
+    return redirect(url_for("project_detail", project_id=need.project.id))
+
+
+@app.route("/statistiques/")
+def statistiques():
+    # On ne considère que les projets validés, visibles du public
+    base_filter = (Project.status == "validated") & (Project.deleted_by_admin == False)
+
+    # ---- Chiffres globaux ----
+    total_users = User.select().count()
+    total_projects = Project.select().count()
+    total_visible_projects = Project.select().where(base_filter).count()
+    total_comments = Comment.select().count()
+    total_needs = Need.select().count()
+
+    # ---- Top 5 projets les plus commentés ----
+    most_commented = (
+        Project
+        .select(Project, fn.COUNT(Comment.id).alias("comment_count"))
+        .join(Comment, JOIN.LEFT_OUTER)
+        .where(base_filter)
+        .group_by(Project)
+        .order_by(fn.COUNT(Comment.id).desc(), Project.created_at.desc())
+        .limit(5)
+    )
+
+    # ---- Top 5 projets avec le plus de besoins ----
+    projects_most_needs = (
+        Project
+        .select(Project, fn.COUNT(Need.id).alias("needs_count"))
+        .join(Need, JOIN.LEFT_OUTER)
+        .where(base_filter)
+        .group_by(Project)
+        .order_by(fn.COUNT(Need.id).desc(), Project.created_at.desc())
+        .limit(5)
+    )
+
+    # ---- Top 5 projets validés les plus récents ----
+    latest_projects = (
+        Project
+        .select()
+        .where(base_filter)
+        .order_by(Project.created_at.desc())
+        .limit(5)
+    )
+
+    # ---- Répartition des projets par ville (projets visibles) ----
+    projects_by_city = (
+        Project
+        .select(Project.ville, fn.COUNT(Project.id).alias("count"))
+        .where(base_filter & (Project.ville.is_null(False)) & (Project.ville != ""))
+        .group_by(Project.ville)
+        .order_by(fn.COUNT(Project.id).desc())
+    )
+
+    # ---- Répartition des utilisateurs par ville ----
+    users_by_city = (
+        User
+        .select(User.ville, fn.COUNT(User.id).alias("count"))
+        .where((User.ville.is_null(False)) & (User.ville != ""))
+        .group_by(User.ville)
+        .order_by(fn.COUNT(User.id).desc())
+    )
+
+    # ---- Créateurs de projets les plus actifs ----
+    top_creators = (
+        User
+        .select(User, fn.COUNT(Project.id).alias("project_count"))
+        .join(Project, JOIN.LEFT_OUTER, on=(Project.createur == User.id))
+        .group_by(User)
+        .order_by(fn.COUNT(Project.id).desc())
+        .limit(5)
+    )
+
+    # ---- Répartition par statut de projet ----
+    status_counts = (
+        Project
+        .select(Project.status, fn.COUNT(Project.id).alias("count"))
+        .group_by(Project.status)
+    )
+
+    # ---- Top 5 projets les plus commentés ----
+    most_commented = (
+        Project
+        .select(Project, fn.COUNT(Comment.id).alias("comment_count"))
+        .join(Comment, JOIN.LEFT_OUTER)
+        .where(base_filter)
+        .group_by(Project)
+        .order_by(fn.COUNT(Comment.id).desc(), Project.created_at.desc())
+        .limit(5)
+    )
+
+    # ---- Top 5 projets validés les plus récents ----
+    latest_projects = (
+        Project
+        .select()
+        .where(base_filter)
+        .order_by(Project.created_at.desc())
+        .limit(5)
+    )
+
+    current_user = get_current_user()
+
+    return render_template(
+        "statistiques.html",
+        current_user=current_user,
+        total_users=total_users,
+        total_projects=total_projects,
+        total_visible_projects=total_visible_projects,
+        total_comments=total_comments,
+        total_needs=total_needs,
+        
+        projects_by_city=projects_by_city,
+        users_by_city=users_by_city,
+        top_creators=top_creators,
+        #status_counts=status_counts,
+        most_commented=most_commented,
+        projects_most_needs=projects_most_needs,
+        #latest_projects=latest_projects,
+    )
+
+# ====================== main ==================================== #
 
 if __name__ == "__main__":
     app.run(debug=True)
+    
