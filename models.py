@@ -1,6 +1,7 @@
 # models.py
 import datetime
 import os
+from dotenv import load_dotenv
 
 from peewee import (
     IntegerField, Model, CharField, TextField, DateTimeField, BooleanField,
@@ -9,8 +10,11 @@ from peewee import (
 from playhouse.postgres_ext import PostgresqlExtDatabase
 from playhouse.db_url import connect  # important
 
+load_dotenv()
+
 # Proxy : permet de brancher soit Postgres, soit SQLite
 db_proxy = DatabaseProxy()
+
 
 class BaseModel(Model):
     class Meta:
