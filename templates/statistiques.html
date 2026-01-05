@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Statistiques générales</h2>
+
+    <section>
+      <h3>Chiffres globaux</h3>
+      <ul>
+        <li>Nombre total d'utilisateurs : <strong>{{ total_users }}</strong></li>
+        <li>Nombre total de projets : <strong>{{ total_projects }}</strong></li>
+        <li>Projets visibles (validés, non archivés) : <strong>{{ total_visible_projects }}</strong></li>
+        <li>Nombre total de commentaires : <strong>{{ total_comments }}</strong></li>
+        <li>Nombre total de besoins : <strong>{{ total_needs }}</strong></li>
+      </ul>
+    </section>
+
+    <hr>
+
+    <section>
+      <h3>Top 5 des projets les plus commentés</h3>
+      <table class="stats-table">
+        <tr>
+          <th>#</th>
+          <th>Projet</th>
+          <th>Ville</th>
+          <th>Commentaires</th>
+        </tr>
+        {% for p in most_commented %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>
+              <a href="{{ url_for('project_detail', project_id=p.id) }}">
+                {{ p.description[:80] }}{% if p.description|length > 80 %}...{% endif %}
+              </a>
+            </td>
+            <td>{{ p.ville or "N/A" }}</td>
+            <td>{{ p.comment_count or 0 }}</td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="4">Pas encore de projets commentés.</td>
+          </tr>
+        {% endfor %}
+      </table>
+    </section>
+
+    <section>
+      <h3>Top 5 des projets avec le plus de besoins</h3>
+      <table class="stats-table">
+        <tr>
+          <th>#</th>
+          <th>Projet</th>
+          <th>Ville</th>
+          <th>Nombre de besoins</th>
+        </tr>
+        {% for p in projects_most_needs %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>
+              <a href="{{ url_for('project_detail', project_id=p.id) }}">
+                {{ p.description[:80] }}{% if p.description|length > 80 %}...{% endif %}
+              </a>
+            </td>
+            <td>{{ p.ville or "N/A" }}</td>
+            <td>{{ p.needs_count or 0 }}</td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="4">Pas encore de projets avec des besoins enregistrés.</td>
+          </tr>
+        {% endfor %}
+      </table>
+    </section>
+
+    <section>
+      <h3>Répartition des projets par ville (projets visibles)</h3>
+      <table class="stats-table">
+        <tr>
+          <th>Ville</th>
+          <th>Nombre de projets</th>
+        </tr>
+        {% for row in projects_by_city %}
+          <tr>
+            <td>{{ row.ville }}</td>
+            <td>{{ row.count }}</td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="2">Aucun projet visible pour le moment.</td>
+          </tr>
+        {% endfor %}
+      </table>
+    </section>
+
+    <section>
+      <h3>Répartition des utilisateurs par ville</h3>
+      <table class="stats-table">
+        <tr>
+          <th>Ville</th>
+          <th>Nombre d'utilisateurs</th>
+        </tr>
+        {% for row in users_by_city %}
+          <tr>
+            <td>{{ row.ville }}</td>
+            <td>{{ row.count }}</td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="2">Aucun utilisateur enregistré pour le moment.</td>
+          </tr>
+        {% endfor %}
+      </table>
+    </section>
+
+    <section>
+    <h3>Utilisateurs ayant créé le plus de projets</h3>
+    <table class="stats-table">
+      <tr>
+        <th>#</th>
+        <th>Utilisateur</th>
+        <th>Ville</th>
+        <th>Nombre de projets</th>
+      </tr>
+      {% for u in top_creators %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ u.prenom }} {{ u.nom }}</td>
+          <td>{{ u.ville or "N/A" }}</td>
+          <td>{{ u.project_count or 0 }}</td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="4">Aucun projet enregistré pour le moment.</td>
+        </tr>
+      {% endfor %}
+    </table>
+  </section>
+
+
+{% endblock %}

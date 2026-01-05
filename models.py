@@ -3,7 +3,7 @@ import datetime
 import os
 
 from peewee import (
-    Model, CharField, TextField, DateTimeField, BooleanField,
+    IntegerField, Model, CharField, TextField, DateTimeField, BooleanField,
     ForeignKeyField, DatabaseProxy, SqliteDatabase
 )
 from playhouse.postgres_ext import PostgresqlExtDatabase
@@ -27,10 +27,13 @@ class User(BaseModel):
 
     # Quand un utilisateur s’inscrit → on lui envoie un code à 5 chiffres par email → il doit le saisir pour valider son compte.
     # Un utilisateur peut supprimer son compte.
-    
     is_verified = BooleanField(default=False)           # → compte validé ou non
     verification_code = CharField(null=True)            # → le code 5 chiffres
     verification_created_at = DateTimeField(null=True)  # → quand le code a été généré
+    
+    # administrateur
+    is_admin = BooleanField(default=False)
+
 
 class Project(BaseModel):
     createur = ForeignKeyField(User, backref="projects")
@@ -38,11 +41,36 @@ class Project(BaseModel):
     ville = CharField(null=True)
     created_at = DateTimeField(default=datetime.datetime.now)
 
+    # Nouveau : gestion de statut
+    # "pending"   = en attente
+    # "validated" = validé et visible sur la page index
+    # "archived"  = validé mais caché du grand public
+    status = CharField(default="pending")  # valeurs attendues : pending / validated / archived
+
+    # Projet retiré de la liste par l’admin (soft delete)
+    deleted_by_admin = BooleanField(default=False)
+
+    # Ajout de quelques compteurs simples dans Project
+    comments_count = IntegerField(default=0)
+    needs_count = IntegerField(default=0)
+
+    # Statistiques temporelles fines
+    validated_at = DateTimeField(null=True)
+    archived_at = DateTimeField(null=True)
+
+    visits_count = IntegerField(default=0)
 
 class Need(BaseModel):
     project = ForeignKeyField(Project, backref="needs")
     texte = CharField()
 
+    # Suivi des besoins comblés
+    is_fulfilled = BooleanField(default=False)
+    fulfilled_at = DateTimeField(null=True)
+
+    # Nouveau : certains besoins sont financiers
+    is_money = BooleanField(default=False)       # True = besoin en argent
+    amount_goal = IntegerField(null=True)       # montant total souhaité (en dollars par ex.)
 
 class Media(BaseModel):
     project = ForeignKeyField(Project, backref="medias")
@@ -60,6 +88,13 @@ class Comment(BaseModel):
     auteur = ForeignKeyField(User, backref="comments")
     contenu = TextField()
     parent = ForeignKeyField("self", null=True, backref="replies")
+    created_at = DateTimeField(default=datetime.datetime.now)
+
+
+class Contribution(BaseModel):
+    need = ForeignKeyField(Need, backref="contributions")
+    user = ForeignKeyField(User, backref="contributions")
+    amount = IntegerField()  # montant en dollars (ou en cents si tu préfères)
     created_at = DateTimeField(default=datetime.datetime.now)
     updated_at = DateTimeField(default=datetime.datetime.now)
 
@@ -87,7 +122,7 @@ def init_database():
     # On crée les tables une fois, Peewee gère la connexion dans ce bloc
     with db_proxy:
         db_proxy.create_tables(
-            [User, Project, Need, Media, ProjectLink, Comment]
+            [User, Project, Need, Media, ProjectLink, Comment, Contribution]
         )
 
 

@@ -28,21 +28,17 @@
   <h3>Liste des besoins</h3>
 
   <div id="besoins-container">
-    {% set besoins = project.needs if project else [] %}
-    {% if besoins %}
-        {% for besoin in besoins %}
-            <div class="besoin-row">
-                <input type="text" name="besoins" value="{{ besoin.texte }}">
-                <button type="button" class="remove-besoin">Supprimer</button>
-            </div>
-        {% endfor %}
-    {% else %}
-        <!-- 1 ligne par défaut si aucun besoin existant -->
-        <div class="besoin-row">
-            <input type="text" name="besoins" placeholder="Ex : Nourriture pour l'événement">
-            <button type="button" class="remove-besoin">Supprimer</button>
-        </div>
-    {% endif %}
+      <!-- Une 1re ligne par défaut -->
+      <div class="besoin-row">
+        <input type="text" name="besoins_texte"
+              placeholder="Ex : Collations pour l'événement">
+
+        <input type="number" name="besoins_montant"
+              min="0"
+              placeholder="Montant en $ (laisser vide si non financier)">
+
+        <button type="button" class="remove-besoin">Supprimer</button>
+      </div>
   </div>
 
   <button type="button" id="add-besoin">+ Ajouter un besoin</button>
@@ -87,87 +83,59 @@
   </button>
 </form>
 
-<!-- Script JS pour gérer les champs dynamiques -->
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    // ---- BESOINS ----
-    const besoinsContainer = document.getElementById('besoins-container');
-    const addBesoinBtn = document.getElementById('add-besoin');
+  <!-- Script JS pour gérer les champs dynamiques -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const besoinsContainer = document.getElementById('besoins-container');
+      const addBesoinBtn = document.getElementById('add-besoin');
 
-    function attachRemoveBesoin(btn) {
-      btn.addEventListener('click', function () {
-        const row = btn.parentElement;
-        besoinsContainer.removeChild(row);
+      function attachRemoveBesoin(btn) {
+        btn.addEventListener('click', function () {
+          const row = btn.parentElement;
+          besoinsContainer.removeChild(row);
+        });
+      }
+
+      function createBesoinRow(texteValue = "", montantValue = "") {
+        const row = document.createElement('div');
+        row.className = 'besoin-row';
+
+        const inputTexte = document.createElement('input');
+        inputTexte.type = 'text';
+        inputTexte.name = 'besoins_texte';
+        inputTexte.placeholder = "Ex : Collations pour l'événement";
+        inputTexte.value = texteValue;
+
+        const inputMontant = document.createElement('input');
+        inputMontant.type = 'number';
+        inputMontant.name = 'besoins_montant';
+        inputMontant.min = "0";
+        inputMontant.placeholder = "Montant en $ (laisser vide si non financier)";
+        if (montantValue !== "" && montantValue !== null) {
+          inputMontant.value = montantValue;
+        }
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'remove-besoin';
+        removeBtn.textContent = 'Supprimer';
+        attachRemoveBesoin(removeBtn);
+
+        row.appendChild(inputTexte);
+        row.appendChild(inputMontant);
+        row.appendChild(removeBtn);
+
+        return row;
+      }
+
+      addBesoinBtn.addEventListener('click', function () {
+        const newRow = createBesoinRow();
+        besoinsContainer.appendChild(newRow);
       });
-    }
 
-    function createBesoinRow() {
-      const row = document.createElement('div');
-      row.className = 'besoin-row';
-
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.name = 'besoins';
-      input.placeholder = "Ex : Nourriture pour l'événement";
-
-      const removeBtn = document.createElement('button');
-      removeBtn.type = 'button';
-      removeBtn.className = 'remove-besoin';
-      removeBtn.textContent = 'Supprimer';
-
-      attachRemoveBesoin(removeBtn);
-
-      row.appendChild(input);
-      row.appendChild(removeBtn);
-      return row;
-    }
-
-    addBesoinBtn.addEventListener('click', function () {
-      const newRow = createBesoinRow();
-      besoinsContainer.appendChild(newRow);
+      // Attache les listeners "Supprimer" aux lignes déjà présentes
+      besoinsContainer.querySelectorAll('.remove-besoin').forEach(attachRemoveBesoin);
     });
-
-    besoinsContainer.querySelectorAll('.remove-besoin').forEach(attachRemoveBesoin);
-
-    // ---- URLS ----
-    const urlsContainer = document.getElementById('urls-container');
-    const addUrlBtn = document.getElementById('add-url');
-
-    function attachRemoveUrl(btn) {
-      btn.addEventListener('click', function () {
-        const row = btn.parentElement;
-        urlsContainer.removeChild(row);
-      });
-    }
-
-    function createUrlRow() {
-      const row = document.createElement('div');
-      row.className = 'url-row';
-
-      const input = document.createElement('input');
-      input.type = 'url';
-      input.name = 'urls';
-      input.placeholder = 'https://exemple.com';
-
-      const removeBtn = document.createElement('button');
-      removeBtn.type = 'button';
-      removeBtn.className = 'remove-url';
-      removeBtn.textContent = 'Supprimer';
-
-      attachRemoveUrl(removeBtn);
-
-      row.appendChild(input);
-      row.appendChild(removeBtn);
-      return row;
-    }
-
-    addUrlBtn.addEventListener('click', function () {
-      const newRow = createUrlRow();
-      urlsContainer.appendChild(newRow);
-    });
-
-    urlsContainer.querySelectorAll('.remove-url').forEach(attachRemoveUrl);
-  });
-</script>
+  </script>
 
 {% endblock %}

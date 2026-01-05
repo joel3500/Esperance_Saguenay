@@ -25,6 +25,23 @@
     </section>
 
     <section>
+      <h3>Besoins</h3>
+      {% if project.needs %}
+        <ul>
+          {% for besoin in project.needs %}
+            <li>{{ besoin.texte }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>Aucun besoin détaillé.</p>
+      {% endif %}
+    </section>
+
+    <section>
+       ON pourrait aussi placer les contributions aux besoins ici
+    </section>
+
+    <section>
       <h3>Galerie du Projet</h3>
       {% if project.medias %}
         <div class="media-grid">
@@ -59,9 +76,6 @@
     </section>
 
     <section>
-      <h3>Besoins et contributions</h3>
-
-      {% if needs %}
         <ul>
           {% for need in needs %}
             <li>
@@ -70,7 +84,6 @@
               {% if need.is_money and need.amount_goal %}
                 {% set total = contributions_by_need.get(need.id, 0) %}
                 {% set remaining = need.amount_goal - total %}
-
                 <div class="money-need">
                   Besoin financier : {{ need.amount_goal }} $
                   <br>
@@ -80,21 +93,11 @@
                 </div>
 
                 {% if current_user %}
-                  {% if remaining > 0 %}
-                    <form action="{{ url_for('contribute_to_need', need_id=need.id) }}"
-                          method="post"
-                          class="contrib-form">
-                      <label>Je souhaite contribuer :</label>
-                      <input type="number"
-                            name="amount"
-                            min="1"
-                            max="{{ remaining }}"
-                            required>
-                      <button type="submit">Contribuer</button>
-                    </form>
-                  {% else %}
-                    <p><strong>Ce besoin financier est entièrement comblé. Merci !</strong></p>
-                  {% endif %}
+                  <form action="{{ url_for('contribute_to_need', need_id=need.id) }}" method="post" class="contrib-form">
+                    <label>Je souhaite contribuer :</label>
+                    <input type="number" name="amount" min="1" max="{{ remaining if remaining > 0 else need.amount_goal }}" required>
+                    <button type="submit">Contribuer</button>
+                  </form>
                 {% else %}
                   <p><a href="{{ url_for('login') }}">Connectez-vous</a> pour contribuer à ce besoin.</p>
                 {% endif %}
@@ -102,9 +105,6 @@
             </li>
           {% endfor %}
         </ul>
-      {% else %}
-        <p>Aucun besoin détaillé.</p>
-      {% endif %}
     </section>
 
   </article><br><br>

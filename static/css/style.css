@@ -108,6 +108,11 @@ header {
   border : 1px solid #ddd;
 }
 
+button:hover 
+{
+  cursor: pointer;
+} 
+
 .top-nav {
   margin-top: 10px;
   min-height: 50px;
@@ -282,3 +287,66 @@ footer {
 /*===============================================================================*/
 /*                        Style pour la Gestion de Projets                       */
 /*===============================================================================*/
+
+/*=================== Style 1 =======================*/
+/*
+th, td 
+{
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid #DDD;
+}
+
+tr:hover 
+{
+  background-color: #D6EEEE;
+}
+*/
+
+/*=================== Style 2 =======================*/
+
+.admin-projects-table, .stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+  background-color: #D6EEEE;
+}
+
+.admin-projects-table th, .admin-projects-table td, 
+.stats-table th, .stats-table td
+{
+  border: 1px solid #ddd;
+  padding: 8px;
+  vertical-align: top;
+}
+
+.admin-projects-table th , .stats-table th {
+  text-align: left;
+}
+
+.admin-projects-table form {
+  margin: 0;
+}
+
+.admin-projects-table button {
+  font-size: 11px;
+  padding: 4px 6px;
+}
+
+/*====== styliser le bouton de SUPPRESSION DE PROJET par l'utilisateur en rouge :    */
+
+button[type="submit"] {
+  padding: 6px 10px;
+}
+
+form[action*="/delete/"] button {
+  background-color: #cc0000;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+form[action*="/delete/"] button:hover {
+  opacity: 0.9;
+}
+ 
