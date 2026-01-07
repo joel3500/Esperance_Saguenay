@@ -93,7 +93,8 @@ class Comment(BaseModel):
     contenu = TextField()
     parent = ForeignKeyField("self", null=True, backref="replies")
     created_at = DateTimeField(default=datetime.datetime.now)
-
+    updated_at = DateTimeField(default=datetime.datetime.now)
+    
 
 class Contribution(BaseModel):
     need = ForeignKeyField(Need, backref="contributions")
