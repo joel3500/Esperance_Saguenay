@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr">  <!-- Ce fichier de base sera le fichier commun à toutes les autres pages -->
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +8,10 @@
 </head>
 <body>
 
-<header>
+<header>    <!-- la synthaxe url_for est une synthaxe jinja, 
+                qui pernmet à la librairie flask de retrouver tous les fichiers 
+                à parttir des pages HTML du repertoire templates 
+           -->
   <img
     src="{{ url_for('static', filename='img/image_principale_centraide_1.jpg') }}"
     alt="Espérance Saguenay"
@@ -18,6 +21,7 @@
   <nav class="top-nav">
     <a href="{{ url_for('index') }}">Accueil</a>
 
+    <!-- Tous les utilisateurs auront accèss à ce IF -->
     {% if current_user %}
       <span><b>{{ current_user.prenom }} {{ current_user.nom }}</b></span>
       <a href="{{ url_for('new_project') }}">Nouveau projet</a>
@@ -25,10 +29,12 @@
       <a href="{{ url_for('logout') }}">Se déconnecter</a>
       <a href="{{ url_for('vision_et_mission') }}">Vision et Mission</a>
       <a href="{{ url_for('statistiques') }}">Statistiques</a>
-      {% if is_admin %}
+
+      {% if is_admin %} <!-- Uniquement si l'utilisateur est un Admin  -->
           <a href="{{ url_for('manage_projects') }}">Gérer les projets</a>
       {% endif %}
-    {% else %}
+
+    {% else %} <!-- Pour les visiteurs n,ayant pas encore de compte  -->
       <a href="{{ url_for('signup') }}">Créer un compte</a>
       <a href="{{ url_for('login') }}">Se connecter</a>
       <a href="{{ url_for('vision_et_mission') }}">Vision et Mission</a>
@@ -37,7 +43,7 @@
   </nav>
 </header>
 
-<main>
+<main> <!-- des messages qui apparaissent sur l'interface HTML dependemment de la situation de l'utilisateur  -->
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <div class="flash-container">
@@ -52,7 +58,7 @@
 </main>
 
 
-<br><br><br><br>
+<br><br><br><br>     <!-- Ce footer sera donc le même pour toutes les pages -->
 <footer>
   Tous droits réservés. Directeur et Propriétaire : Professeur Fehmi Jaafar,
   réalisé par Joel Sandé, du Saguenay–Lac-Saint-Jean.

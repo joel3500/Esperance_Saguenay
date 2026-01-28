@@ -7,7 +7,6 @@
 /*============= Taille de l'ordinateur */
 /*              1rem = 16px            */
 
-
 /*============= <= 480px (Telephone PORTABLE) : empile tout en 1 colonne, boutons full width  */
 
 @media (max-width: 480px) {
@@ -43,6 +42,7 @@
 }
 
 /*============= <= 768px (TABLETTE) : empile tout en 1 colonne, boutons full width  */
+
 @media (max-width: 768px) {
 
     body {
@@ -78,11 +78,7 @@
 
 
 
-
-
-
-
-
+/*============= Commun à tous les écrans  ==========================  */
 
 body {
   font-family: Arial, sans-serif;
@@ -285,7 +281,7 @@ footer {
 }
 
 /*===============================================================================*/
-/*                        Style pour la Gestion de Projets                       */
+/*                    Style pour la Gestion Admin des Projets                    */
 /*===============================================================================*/
 
 /*=================== Style 1 =======================*/
@@ -333,7 +329,7 @@ tr:hover
   padding: 4px 6px;
 }
 
-/*====== styliser le bouton de SUPPRESSION DE PROJET par l'utilisateur en rouge :    */
+/*====== Pour styliser le bouton de SUPPRESSION DE PROJET par l'utilisateur en rouge :    */
 
 button[type="submit"] {
   padding: 6px 10px;

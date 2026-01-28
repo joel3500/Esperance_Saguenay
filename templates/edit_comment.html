@@ -1,11 +1,12 @@
-{% extends "base.html" %}
-{% block content %}
+{% extends "base.html" %}  <!-- Le contenu du fichier de base.html est commun à tous les fichiers  -->
+    
+    {% block content %}  <!-- Debut du block de l'extension  -->
 
-<h2>Modifier votre commentaire</h2>
+        <h2>Modifier votre commentaire</h2>
 
-<form method="post" class="form-vertical">
-  <textarea name="contenu" rows="4" required>{{ comment.contenu }}</textarea>
-  <button type="submit">Enregistrer</button>
-</form>
+        <form method="post" class="form-vertical">
+          <textarea name="contenu" rows="4" required>{{ comment.contenu }}</textarea>
+          <button type="submit">Enregistrer</button>
+        </form>
 
-{% endblock %}
+    {% endblock %}       <!--FIN du block de l'extension  -->
