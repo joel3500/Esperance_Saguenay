@@ -1,5 +1,0 @@
-# Chaque fois qu'un utilisateur clique sur un bouton :
-- Pour voir les détails d'un projet
-- Pour soumettre un projet
-- Pour soumettre un commentaire
-
